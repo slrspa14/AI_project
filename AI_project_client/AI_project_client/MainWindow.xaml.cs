@@ -23,6 +23,8 @@ namespace AI_project_client
         public NetworkStream stream;//통신스트림
         public TcpClient client = new TcpClient();//연결소켓
         byte[] message = new byte[10];
+        //검사결과용
+        private int pass_cnt = 0, defect_cnt = 0;
 
         public MainWindow()
         {
@@ -91,12 +93,12 @@ namespace AI_project_client
                 if (client.Connected)
                 {
                     MessageBox.Show("접속 성공");
-                    string test = "1/클라접속";
+                    string information = "1/1번라인";
                     stream = client.GetStream();
-                    message = Encoding.Default.GetBytes(test);
+                    message = Encoding.Default.GetBytes(information);
                     stream.Write(message, 0, message.Length);
                     File_send();
-                    Receive_result();
+                    //Receive_result();
                 }
                 else
                     MessageBox.Show("접속 실패");
@@ -118,46 +120,46 @@ namespace AI_project_client
         }
 
         //실시간 캡처본
-        private async void File_send()//되려나
+        private async void File_send()
         {
             await Task.Run(async() =>
                {
                    while (true)
                    {
-                       await Task.Delay(1000);
-                       byte[] file_ready = new byte[4];
-                       file_ready = Encoding.Default.GetBytes("1/2");//보내서 서버에서 파일받을 준비하라고
-                       stream.Write(file_ready, 0, file_ready.Length);
+                       await Task.Delay(5000);
+                       //byte[] file_ready = new byte[4];
+                       //file_ready = Encoding.Default.GetBytes("1/불량검출");//보내서 서버에서 파일받을 준비하라고
+                       //stream.Write(file_ready, 0, file_ready.Length);
                        Mat capture_image = new Mat();
                        cam.Read(capture_image);
 
                        byte[] file_length = new byte[4];
                        file_length = BitConverter.GetBytes(capture_image.ToBytes().Length);
                        stream.Write(file_length, 0, file_length.Length);//파일크기 보내주고
-
+                       MessageBox.Show("파일크기 보내고");
                        byte[] file_data = new byte[capture_image.ToBytes().Length];//파일크기 배열 생성
                        file_data = capture_image.ToBytes();
                        stream.Write(file_data, 0, file_data.Length);
-                       
-                       Array.Clear(file_ready, 0, file_ready.Length);
+                       MessageBox.Show("파일 보냄");
+                       //Array.Clear(file_ready, 0, file_ready.Length);
                        Array.Clear(file_length, 0, file_length.Length);
                        Array.Clear(file_data, 0, file_data.Length);
+                       //break;
                    }
                });
         }
-        private async void Receive_result()//되려나
-        {
-            await Task.Run(() =>
-                {
-                    byte[] recv_result = new byte[256];
-                    stream.Read(recv_result, 0, recv_result.Length);
-                    //결과 라벨에 띄우기
-                    string result = Encoding.Default.GetString(recv_result);
-                    //result_label.Content = result;//라벨
-                    MessageBox.Show(result);
-                });
-            
-        }
+        //private async void Receive_result()//되려나
+        //{
+        //    await Task.Run(() =>
+        //        {
+        //            byte[] recv_result = new byte[256];
+        //            stream.Read(recv_result, 0, recv_result.Length);
+        //            //결과 라벨에 띄우기
+        //            string result = Encoding.Default.GetString(recv_result);
+        //            //result_label.Content = result;//라벨
+        //            MessageBox.Show(result);
+        //        });
+        //}
     }
 
 }
