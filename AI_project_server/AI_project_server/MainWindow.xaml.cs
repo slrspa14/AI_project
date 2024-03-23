@@ -7,6 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.IO;
+using System.Windows.Controls;
+using System.Windows.Threading;
 
 namespace AI_project_server
 {
@@ -19,15 +21,24 @@ namespace AI_project_server
         private const int bindPort = 9196;
         private TcpListener server = null;
         private IPEndPoint localAddress;
-        TcpClient client;
-        NetworkStream stream;
+        private TcpClient client;
+        private NetworkStream stream;
+
+
         string[] divide;//구분용
         string msg;//받아온 데이터 변환용
-        byte[] file_length;//수신한 파일 길이용
-        byte[] file_data;//수신한 파일내용
-        FileStream filestr;
-        int fileLength;
-        int cnt = 0;
+        //FileStream filestr;
+
+        int fileLength;//파일 길이용
+        byte[] buffer;//파일 데이터용
+        byte[] file_buf;
+
+        int numbering = 0;//테스트용
+
+        //listview용 리스트
+        string date;//listview 날짜용
+        List<string> pass_result = new List<string>();
+        List<string> defect_result = new List<string>();
 
         //클라구분용
         Dictionary<string, NetworkStream> client_Distinguish = new Dictionary<string, NetworkStream>();
@@ -47,8 +58,9 @@ namespace AI_project_server
                 server = new TcpListener(localAddress);
                 server.Start();
                 MessageBox.Show("Server Open");
-                Thread t1 = new Thread(new ThreadStart(Connect));
-                t1.Start();
+                //Thread t1 = new Thread(new ThreadStart(Connect));
+                //t1.Start();
+                Connect();
             }
             catch (Exception ex)
             {
@@ -56,119 +68,127 @@ namespace AI_project_server
                 server.Stop();
             }
         }
-        private void Connect()
+        private async void Connect()
         {
-            client = server.AcceptTcpClient();
-            stream = client.GetStream();
-            while (true)
-            {
-                int length;
-                byte[] data = new byte[128];
-                while ((length = stream.Read(data, 0, data.Length)) != 0)//파일크기 받고 파일받기
-                {
-                    try
-                    {
-                        byte[] size = new byte[4];
-                        stream.Read(size, 0, size.Length);
-                        fileLength = BitConverter.ToInt32(size, 0);
 
-                        filestr = new FileStream("../../test" + cnt + ".png", FileMode.Create, FileAccess.Write);
-                        cnt++;
-                        int byteread;//리드한 파일 크기 담을거
-
-                        BinaryWriter write = new BinaryWriter(filestr);
-
-                        byte[] buffer = new byte[fileLength];
-                        //MessageBox.Show("여기");
-                        byteread = stream.Read(buffer, 0, buffer.Length);
-                        write.Write(buffer, 0, byteread);
-                        filestr.Close();
-                        Array.Clear(size, 0, size.Length);
-                        Array.Clear(buffer, 0, buffer.Length);
-                        //데이터 받고 구분자로 파이썬, WPF 구분하기
-                        //msg = Encoding.Default.GetString(data);
-                        //divide = msg.Split('/');
-                        //if(divide[0] == "1")
-                        //{
-                        //    //WPF client 정보저장하기
-                        //    //client_Distinguish.Add(divide[1], stream);
-                        //    //파일수신 및 파이썬한테 전송하기
-                        //    if(divide[1] == "1")
-                        //    {
-                        //        //파일수신 테스트
-                        //        stream.Read(size, 0, size.Length);
-                        //        fileLength = BitConverter.ToInt32(size, 0);
-
-                        //        string lineNumber = lineNameAndStream.FirstOrDefault(x => x.Value == stream).Key;
-
-                        //        fileStr = new FileStream("../../Fimg.png", FileMode.Create, FileAccess.Write);
-                        //        string a = "Fimg" + lineNumber + imageFileNumberCount.ToString() + ".png";
-                        //        int byteread;//리드한 파일 크기 담을거
-
-                        //        BinaryWriter write = new BinaryWriter(fileStr);
-
-                        //        byte[] buffer = new byte[fileLength];
-
-                        //        byteread = stream.Read(buffer, 0, buffer.Length);
-                        //        write.Write(buffer, 0, byteread);
-                        //        fileStr.Close();
-                        //    }
-
-                        //}
-                        //else if(divide[0] == "2")
-                        //{
-                        //    //python 정보저장하기
-                        //    client_Distinguish.Add(divide[1], stream);
-                        //    //검사결과 및 파일수신하기, DB저장하기
-
-                        //}
-                    }
-                    catch(Exception s)
-                    {
-                        MessageBox.Show(s.ToString());
-                    }
-
-                }
-                client.Close();
-                stream.Close();
-            }
-        }
-        private async void send_python(byte[] file_length, byte[] file_data)
-        {
             await Task.Run(async () =>
             {
                 await Task.Delay(1000);
-                //파일크기 보내주기
-                stream.Write(file_length, 0, file_length.Length);
-                //파일데이터 보내주기
-                stream.Write(file_data, 0, file_data.Length);
+                client = server.AcceptTcpClient();
+                stream = client.GetStream();
+                while (true)
+                {
+                    int length;
+                    byte[] data = new byte[128];
+                    while ((length = stream.Read(data, 0, data.Length)) != 0)//파일크기 받고 파일받기
+                    {
+                        try
+                        {
+                            //데이터 받고 구분자로 파이썬, WPF 구분하기
+                            msg = Encoding.Default.GetString(data);
+                            //MessageBox.Show(msg);
+                            divide = msg.Split('/');
+                            //stream.Write(data, 0, data.Length);
+                            if (divide[0] == "1")
+                            {
+                                //WPF client 정보저장하기
+                                client_Distinguish.Add(divide[1], stream);
+                                //파일수신 및 파이썬한테 전송하기
+                            }
+                            else if(divide[0] == "3")
+                            {
+                                //파일수신 테스트
+                                byte[] size = new byte[4];
+                                stream.Read(size, 0, size.Length);
+                                fileLength = BitConverter.ToInt32(size, 0);
+                                MessageBox.Show(fileLength.ToString());
+                                //MessageBox.Show(fileLength.ToString() + "파일크기계속 바뀌나");//잘 바뀜
+                                //filestr = new FileStream("../../test" + numbering + ".png", FileMode.Create, FileAccess.Write);
+                                numbering++;
+                                //int byteread;//리드한 파일 크기 담을거
+                                //¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿
+                                //BinaryWriter write = new BinaryWriter(filestr);
 
-                Array.Clear(file_length, 0, file_length.Length);
-                Array.Clear(file_data, 0, file_data.Length);
+                                buffer = new byte[fileLength];
+                                //MessageBox.Show("여기");
+                                fileLength = stream.Read(buffer, 0, buffer.Length);
+                                file_buf = new byte[fileLength];
+                                file_buf = buffer;
+                                //write.Write(buffer, 0, byteread);
+                                //filestr.Close();
+                                //Array.Clear(size, 0, size.Length);
+                                //Array.Clear(buffer, 0, buffer.Length);
+                            }
+                            else if (divide[0] == "5")
+                            {
+                                //python 정보저장하기
+                                client_Distinguish.Add(divide[1], stream);
+                                
+                            }
+                            else if(divide[0] == "6")//검사결과 수신//pass일 때
+                            {
+                                MessageBox.Show("6번 진입");
+                                //리스트뷰에 띄우기
+                                //ui 건드리는 스레드가 아닌 애가 건드리려고 해서 오류남
+                                Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                                {
+                                    //Result_Log.Items.Insert(numbering, test);
+                                }));
+                                numbering++;
+                                //검사결과 및 파일수신하기, DB저장하기
+
+
+                                //결과 wpf 클라한테 보내주기
+                                byte[] result = new byte[128];
+                                result = Encoding.Default.GetBytes(divide[1]);//결과
+                                stream.Write(result, 0, result.Length);
+                            }
+                            else if(divide[0] == "7")//검사결과 불량일 때 사진도 받고 이미지에 사진 띄우기
+                            {
+                                MessageBox.Show("7번 진입");
+                                //Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                                //{
+                                //    Result_Log.Items.Insert(numbering, test);
+                                //}));
+                                numbering++;
+                                //결과 wpf 클라한테 보내주기
+                                byte[] result = new byte[128];
+                                result = Encoding.Default.GetBytes(divide[1]);//결과
+                                stream.Write(result, 0, result.Length);
+
+                            }
+                            else if(divide[0] == "2")
+                            {
+                                MessageBox.Show("파이썬 중복 확인 50번 진입");
+                                client_Distinguish.Add(divide[1], stream);
+                                await Task.Delay(8000);
+                                Send_python();//error
+                            }
+                        }
+                        catch (Exception s)
+                        {
+                            MessageBox.Show(s.ToString());
+                        }
+                    }
+                    client.Close();
+                    stream.Close();
+                }
             });
         }
-        //private async void Connect_test()
-        //{
-        //    await Task.Run(async () =>
-        //    {
-        //        while (true)
-        //        {
-        //            await Task.Delay(1000);
-        //            client = server.AcceptTcpClient();
-        //            stream = client.GetStream();
-        //            int length;
-        //            byte[] data = new byte[128];
-        //            while ((length = stream.Read(data, 0, data.Length)) != 0)//파일크기 받고 파일받기//클라가 연결 끊었을 때
-        //            {
-        //                //연결 확인용
-        //                string test = Encoding.Default.GetString(data);
-        //                MessageBox.Show(test);
-        //                byte[] test_msg = new byte[128];
-        //                test_msg = Encoding.Default.GetBytes("가나요");//잘 옴
-        //                stream.Write(test_msg, 0, test_msg.Length);
-        //            }
-        //        }
-        //    });
-        //}
+        private void Send_python()
+        {
+            //파일크기 보내주기
+            //error//?¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿"¿ 너는 왜
+            byte[] test = new byte[4];
+            test = Encoding.Default.GetBytes(fileLength.ToString());
+            MessageBox.Show(test.ToString() + " 파일크기 확인용");
+            stream.Write(test, 0, 4);
+            //파일데이터 보내주기
+            //MessageBox.Show(file_buf.ToString() + " 파일데이터 확인용");
+            stream.Write(file_buf, 0, file_buf.Length);//error//null이라서//
+            //MessageBox.Show(file_buf.ToString() + " 파일데이터 확인용123");
+            //Array.Clear(file_length, 0, file_length.Length);
+            //Array.Clear(file_data, 0, file_data.Length);
+        }
     }
 }

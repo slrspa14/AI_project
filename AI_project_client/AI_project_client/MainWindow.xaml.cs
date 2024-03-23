@@ -24,7 +24,7 @@ namespace AI_project_client
         public TcpClient client = new TcpClient();//연결소켓
         byte[] message = new byte[10];
         //검사결과용
-        private int pass_cnt = 0, defect_cnt = 0;
+        private int pass_cnt = 0, defect_cnt = 0, length;
 
         public MainWindow()
         {
@@ -97,8 +97,8 @@ namespace AI_project_client
                     stream = client.GetStream();
                     message = Encoding.Default.GetBytes(information);
                     stream.Write(message, 0, message.Length);
-                    File_send();
-                    //Receive_result();
+                    File_send(client);
+                    Receive_result(client);
                 }
                 else
                     MessageBox.Show("접속 실패");
@@ -120,16 +120,17 @@ namespace AI_project_client
         }
 
         //실시간 캡처본
-        private async void File_send()
+        private async void File_send(TcpClient client)
         {
+            stream = client.GetStream();
             await Task.Run(async() =>
                {
                    while (true)
                    {
                        await Task.Delay(5000);
-                       //byte[] file_ready = new byte[4];
-                       //file_ready = Encoding.Default.GetBytes("1/불량검출");//보내서 서버에서 파일받을 준비하라고
-                       //stream.Write(file_ready, 0, file_ready.Length);
+                       byte[] file_ready = new byte[4];
+                       file_ready = Encoding.Default.GetBytes("3/불량검출");//보내서 서버에서 파일받을 준비하라고
+                       stream.Write(file_ready, 0, file_ready.Length);
                        Mat capture_image = new Mat();
                        cam.Read(capture_image);
 
@@ -148,18 +149,26 @@ namespace AI_project_client
                    }
                });
         }
-        //private async void Receive_result()//되려나
-        //{
-        //    await Task.Run(() =>
-        //        {
-        //            byte[] recv_result = new byte[256];
-        //            stream.Read(recv_result, 0, recv_result.Length);
-        //            //결과 라벨에 띄우기
-        //            string result = Encoding.Default.GetString(recv_result);
-        //            //result_label.Content = result;//라벨
-        //            MessageBox.Show(result);
-        //        });
-        //}
+        private async void Receive_result(TcpClient client)//되려나
+        {
+            stream = client.GetStream();
+            await Task.Run(() =>
+                {
+                    byte[] recv_result = new byte[256];
+                    while ((length = stream.Read(recv_result, 0, recv_result.Length)) != 0)//결과만 수신할거니깐
+                    {
+                        //결과 라벨에 띄우기
+                        string result = Encoding.Default.GetString(recv_result);
+                        Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                        {
+                            result_label.Content = result;//라벨
+                        }));
+                        //MessageBox.Show(result);
+                    }
+                    client.Close();
+                    stream.Close();
+                });
+        }
     }
 
 }
