@@ -24,7 +24,7 @@ namespace AI_project_server
         private TcpClient client;
         private NetworkStream stream;
 
-        FileStream read_file;
+        FileStream read_file, send_to_python;
         string[] divide;//구분용
         string msg;//받아온 데이터 변환용
         //FileStream filestr;
@@ -84,7 +84,7 @@ namespace AI_project_server
                         IPstate.AppendText("입장 아이피 : " + IP + "\n");
                     });
                     Thread t1 = new Thread(new ThreadStart(Connected_client));
-                    t1.Start();//왜 쓰레드 안 타냐
+                    t1.Start();
                 }
                 
             });
@@ -172,23 +172,7 @@ namespace AI_project_server
                         {
                             MessageBox.Show("파이썬 중복 확인 50번 진입");
                             client_Distinguish.Add(divide[1], stream);
-                            //Send_python();//error
-                            //MessageBox.Show("함수호출성공");
-                            //if (buffer != null && buffer.Length > 0)
-                            //{
-                            //    // 파일 크기 전송
-                            //    byte[] fileSizeBytes = BitConverter.GetBytes(fileLength);
-                            //    stream.Write(fileSizeBytes, 0, fileSizeBytes.Length);
-
-                            //    // 파일 데이터 전송
-                            //    stream.Write(buffer, 0, buffer.Length);
-
-                            //    MessageBox.Show("파일이 성공적으로 전송되었습니다.");
-                            //}
-                            //else
-                            //{
-                            //    MessageBox.Show("전송할 파일 데이터가 없습니다.");
-                            //}
+                            Send_python();
                         }
                     }
                     catch (Exception s)
@@ -201,31 +185,7 @@ namespace AI_project_server
             }
         }
 
-
-        //private void Send_python()
-        //{
-        //    try
-        //    {
-        //        //파일크기 보내주기
-        //        //error//?¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿"¿ 너는 왜
-        //        byte[] test = new byte[4];
-        //        test = Encoding.Default.GetBytes(fileLength.ToString());
-        //        MessageBox.Show(test.ToString() + " 파일크기 확인용");
-        //        stream.Write(test, 0, 4);
-        //        //파일데이터 보내주기
-        //        //MessageBox.Show(file_buf.ToString() + " 파일데이터 확인용");
-        //        stream.Write(file_buf, 0, file_buf.Length);//error//null이라서//
-        //        //MessageBox.Show(file_buf.ToString() + " 파일데이터 확인용123");
-        //        //Array.Clear(file_length, 0, file_length.Length);
-        //        //Array.Clear(file_data, 0, file_data.Length);
-        //    }
-        //    catch(Exception s)
-        //    {
-        //        MessageBox.Show(s.ToString());
-        //    }
-        //}
-
-        private async void Send_python(byte[] buffer)
+        private async void Send_python()//저장된 파일 열어서 보내주기
         {
             try
             {
@@ -233,25 +193,28 @@ namespace AI_project_server
                 if (buffer != null && buffer.Length > 0)
                 {
                     // 파일 크기 전송
-                    //byte[] fileSizeBytes = BitConverter.GetBytes(buffer.Length);
-                    byte[] fileSizeBytes = new byte[buffer.Length];
-                    stream.Write(fileSizeBytes, 0, fileSizeBytes.Length);
-                    string test = fileSizeBytes.ToString();
-                    MessageBox.Show(test + "파일사이즈");
+                    byte[] file_size = new byte[4];
+                    send_to_python = new FileStream("../../WPF_read_image/" + numbering + ".png", FileMode.Open, FileAccess.Read);
+                    int fileLength = (int)send_to_python.Length;
+                    file_size = Encoding.Default.GetBytes(fileLength.ToString());
+                    stream.Write(file_size, 0, file_size.Length);
 
-                    // 파일 데이터 전송
-                    stream.Write(buffer, 0, buffer.Length);
+                    byte[] file_data = new byte[fileLength];
 
-                    MessageBox.Show("파일이 성공적으로 전송되었습니다.");
+                    send_to_python.Read(file_data, 0, file_data.Length);//파일읽어서 배열에 넣고
+                    stream.Write(file_data, 0, file_data.Length);//송신
+
+                    MessageBox.Show("파일전송완료");
+                    //file_data.Close();//닫기추가
                 }
                 else
                 {
-                    MessageBox.Show("전송할 파일 데이터가 없습니다.");
+                    MessageBox.Show("파일 데이터 없음.");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("파일 전송 중 오류가 발생했습니다: " + ex.Message);
+                MessageBox.Show("파일 전송 오류: " + ex.ToString());
             }
         }
 
