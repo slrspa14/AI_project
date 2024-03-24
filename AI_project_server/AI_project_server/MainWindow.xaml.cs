@@ -71,19 +71,21 @@ namespace AI_project_server
         {
             await Task.Run(async () =>
             {
-                await Task.Delay(1000);
-                client = server.AcceptTcpClient();
-                stream = client.GetStream();
-                IPEndPoint getIP = (IPEndPoint)client.Client.RemoteEndPoint;
-                string IP = getIP.Address.ToString();
-                //Thread t1 = new Thread(new ThreadStart(Connected_client));
-                //t1.Start();
-                Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                while(true)
                 {
-                    IPstate.AppendText("입장 아이피 : " + IP + "\n");
-                }));
-
-                Connected_client();
+                    await Task.Delay(1000);
+                    client = server.AcceptTcpClient();
+                    stream = client.GetStream();
+                    IPEndPoint getIP = (IPEndPoint)client.Client.RemoteEndPoint;
+                    string IP = getIP.Address.ToString();
+                    Dispatcher.Invoke(() =>
+                    {
+                        IPstate.AppendText("입장 아이피 : " + IP + "\n");
+                    });
+                    Thread t1 = new Thread(new ThreadStart(Connected_client));
+                    t1.Start();//왜 쓰레드 안 타냐
+                }
+                
             });
             
         }
@@ -91,7 +93,6 @@ namespace AI_project_server
         {
             while (true)
             {
-                
                 int length;
                 byte[] data = new byte[128];
                 while ((length = stream.Read(data, 0, data.Length)) != 0)//파일크기 받고 파일받기
