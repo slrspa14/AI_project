@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using System.IO;
 
 namespace AI_project_server
 {
@@ -23,7 +24,7 @@ namespace AI_project_server
         private TcpClient client;
         private NetworkStream stream;
 
-
+        FileStream read_file;
         string[] divide;//구분용
         string msg;//받아온 데이터 변환용
         //FileStream filestr;
@@ -116,23 +117,19 @@ namespace AI_project_server
                             byte[] size = new byte[4];
                             stream.Read(size, 0, size.Length);
                             fileLength = BitConverter.ToInt32(size, 0);
-                            //MessageBox.Show(fileLength.ToString());
-                            //MessageBox.Show(fileLength.ToString() + "파일크기계속 바뀌나");//잘 바뀜
-                            //filestr = new FileStream("../../test" + numbering + ".png", FileMode.Create, FileAccess.Write);
-                            //numbering++;
+                            MessageBox.Show(fileLength.ToString() + "파일크기계속 바뀌나");//잘 바뀜
+                            read_file = new FileStream("../../WPF_read_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);
+                            numbering++;
                             //int byteread;//리드한 파일 크기 담을거
                             //¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿
-                            //BinaryWriter write = new BinaryWriter(filestr);
+                            BinaryWriter write = new BinaryWriter(read_file);
 
                             buffer = new byte[fileLength];
                             //MessageBox.Show("여기");
                             stream.Read(buffer, 0, buffer.Length);
-                            //file_buf = new byte[fileLength];
-                            //file_buf = buffer;
-                            //write.Write(buffer, 0, byteread);
-                            //filestr.Close();
-                            //Array.Clear(size, 0, size.Length);
-                            //Array.Clear(buffer, 0, buffer.Length);
+                            write.Write(buffer, 0, buffer.Length);
+                            read_file.Close();
+                            //Send_python(buffer);
                         }
                         else if (divide[0] == "5")
                         {
@@ -177,21 +174,21 @@ namespace AI_project_server
                             client_Distinguish.Add(divide[1], stream);
                             //Send_python();//error
                             //MessageBox.Show("함수호출성공");
-                            if (buffer != null && buffer.Length > 0)
-                            {
-                                // 파일 크기 전송
-                                byte[] fileSizeBytes = BitConverter.GetBytes(fileLength);
-                                stream.Write(fileSizeBytes, 0, fileSizeBytes.Length);
+                            //if (buffer != null && buffer.Length > 0)
+                            //{
+                            //    // 파일 크기 전송
+                            //    byte[] fileSizeBytes = BitConverter.GetBytes(fileLength);
+                            //    stream.Write(fileSizeBytes, 0, fileSizeBytes.Length);
 
-                                // 파일 데이터 전송
-                                stream.Write(buffer, 0, buffer.Length);
+                            //    // 파일 데이터 전송
+                            //    stream.Write(buffer, 0, buffer.Length);
 
-                                MessageBox.Show("파일이 성공적으로 전송되었습니다.");
-                            }
-                            else
-                            {
-                                MessageBox.Show("전송할 파일 데이터가 없습니다.");
-                            }
+                            //    MessageBox.Show("파일이 성공적으로 전송되었습니다.");
+                            //}
+                            //else
+                            //{
+                            //    MessageBox.Show("전송할 파일 데이터가 없습니다.");
+                            //}
                         }
                     }
                     catch (Exception s)
@@ -203,8 +200,8 @@ namespace AI_project_server
                 stream.Close();
             }
         }
-        
-        
+
+
         //private void Send_python()
         //{
         //    try
@@ -228,22 +225,35 @@ namespace AI_project_server
         //    }
         //}
 
-        //private async void Send_python()
-        //{
-        //    try
-        //    {
-        //        await Task.Run(async () =>
-        //        {
-        //            await Task.Delay(1000);
-        //            // file_buf에 데이터가 있는지 확인
+        private async void Send_python(byte[] buffer)
+        {
+            try
+            {
+                await Task.Delay(1000);
+                if (buffer != null && buffer.Length > 0)
+                {
+                    // 파일 크기 전송
+                    //byte[] fileSizeBytes = BitConverter.GetBytes(buffer.Length);
+                    byte[] fileSizeBytes = new byte[buffer.Length];
+                    stream.Write(fileSizeBytes, 0, fileSizeBytes.Length);
+                    string test = fileSizeBytes.ToString();
+                    MessageBox.Show(test + "파일사이즈");
 
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        MessageBox.Show("파일 전송 중 오류가 발생했습니다: " + ex.Message);
-        //    }
-        //}
+                    // 파일 데이터 전송
+                    stream.Write(buffer, 0, buffer.Length);
+
+                    MessageBox.Show("파일이 성공적으로 전송되었습니다.");
+                }
+                else
+                {
+                    MessageBox.Show("전송할 파일 데이터가 없습니다.");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("파일 전송 중 오류가 발생했습니다: " + ex.Message);
+            }
+        }
 
     }
 }
