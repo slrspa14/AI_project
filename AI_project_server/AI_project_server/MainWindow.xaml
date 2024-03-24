@@ -36,7 +36,7 @@
                HorizontalAlignment="Center"/>
         <Button x:Name="open_btn" Grid.Row="1" Grid.Column="1" Height="50" Margin="10,10,10,140"
                 Content="OPEN" FontSize="18" FontWeight="Bold" Click="Open_btn_Click"/>
-        <TextBox x:Name="IP" Grid.Row="2" Grid.Column="1" Margin="10,35,10,10"/>
+        <TextBox x:Name="IPstate" Grid.Row="2" Grid.Column="1" Margin="10,35,10,10"/>
         <Label x:Name="IP_state" Grid.Row="2" Grid.Column="1" Height="25" Margin="10,10,10,70" 
                Content="IP 접속현황" FontSize="13" FontWeight="Bold" HorizontalAlignment="Left"/>
     </Grid>

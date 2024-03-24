@@ -89,7 +89,7 @@ namespace AI_project_client
             //client = new TcpClient();
             try
             {
-                client.Connect("10.10.20.113", 9196);
+                client.Connect("10.10.20.113", 9197);
                 if (client.Connected)
                 {
                     MessageBox.Show("접속 성공");
@@ -137,11 +137,11 @@ namespace AI_project_client
                        byte[] file_length = new byte[4];
                        file_length = BitConverter.GetBytes(capture_image.ToBytes().Length);
                        stream.Write(file_length, 0, file_length.Length);//파일크기 보내주고
-                       MessageBox.Show("파일크기 보내고");
+                       //MessageBox.Show("파일크기 보내고");
                        byte[] file_data = new byte[capture_image.ToBytes().Length];//파일크기 배열 생성
                        file_data = capture_image.ToBytes();
                        stream.Write(file_data, 0, file_data.Length);
-                       MessageBox.Show("파일 보냄");
+                       //MessageBox.Show("파일 보냄");
                        //Array.Clear(file_ready, 0, file_ready.Length);
                        Array.Clear(file_length, 0, file_length.Length);
                        Array.Clear(file_data, 0, file_data.Length);
