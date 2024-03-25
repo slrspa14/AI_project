@@ -142,10 +142,6 @@ namespace AI_project_client
                        file_data = capture_image.ToBytes();
                        stream.Write(file_data, 0, file_data.Length);
                        MessageBox.Show("WPF client -> WPF server");
-                       //Array.Clear(file_ready, 0, file_ready.Length);
-                       //Array.Clear(file_length, 0, file_length.Length);
-                       //Array.Clear(file_data, 0, file_data.Length);
-                       //break;
                    }
                });
         }

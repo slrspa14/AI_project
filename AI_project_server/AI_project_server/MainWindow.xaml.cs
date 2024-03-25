@@ -173,7 +173,7 @@ namespace AI_project_server
                         }
                         else if (divide[0] == "2")
                         {
-                            MessageBox.Show("파이썬 중복 확인 50번 진입");
+                            //MessageBox.Show("파이썬 중복 확인 50번 진입");
                             client_Distinguish.Add(divide[1], stream);
                             to_python = divide[1];
                             Send_python();
@@ -240,7 +240,7 @@ namespace AI_project_server
         }
 
 
-        private async void Receive_python()
+        private async void Pass_receive()
         {
             await Task.Run(async () =>
             {
@@ -251,6 +251,33 @@ namespace AI_project_server
                 //여기서 받아서 리스트뷰 채우기
                 //pass defect 구별하고
                 
+            });
+        }
+        private async void Defect_receive()//얘는 이미지도?
+        {
+            await Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+                NetworkStream stream_python = client_Distinguish[to_python];
+                byte[] result = new byte[1024];
+                stream_python.Read(result, 0, result.Length);//결과 먼저 수신받고 파일받기
+                //결과 수신받고 리스트뷰 채우기
+
+
+                //파일 사이즈용
+                byte[] image_size = new byte[4];
+                stream_python.Read(image_size, 0, image_size.Length);
+                int file_size = BitConverter.ToInt32(image_size, 0);
+
+                //파일 만들고
+                FileStream defect_image = new FileStream("../../defect_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);
+                //수신
+                byte[] file_data = new byte[file_size];
+                BinaryWriter write = new BinaryWriter(defect_image);
+                stream_python.Read(file_data, 0, file_data.Length);
+                write.Write(file_data, 0, file_data.Length);
+                //이미지 수신하고 image에 사진 넣어주기
+
             });
         }
     }
