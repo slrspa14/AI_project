@@ -189,6 +189,56 @@ namespace AI_project_server
             }
         }
 
+        //private async void Send_python()//저장된 파일 열어서 보내주기
+        //{
+        //    NetworkStream stream_python = client_Distinguish[to_python];
+        //    try
+        //    {
+        //        while (true)
+        //        {
+        //            await Task.Delay(6000);
+        //            // 파일 크기 전송
+        //            byte[] file_size = new byte[4];
+        //            send_to_python = new FileStream("../../WPF_read_image/" + num_test + ".png", FileMode.Open, FileAccess.Read);
+        //            lock (lockObject)
+        //            {
+        //                num_test++;
+        //            }
+        //            MessageBox.Show(num_test.ToString());
+        //            int test_length = (int)send_to_python.Length;
+        //            string str_length = test_length.ToString();
+        //            file_size = Encoding.Default.GetBytes(str_length.ToString());
+        //            stream_python.Write(file_size, 0, 4);//error
+        //            MessageBox.Show(str_length.ToString() + "파일크기용");
+
+        //            //byte[] file_data = new byte[test_length];
+
+        //            //============================================================
+        //            byte[] file_data = new byte[1024];
+        //            int count = test_length / 1024 + 1;
+        //            BinaryReader reader = new BinaryReader(send_to_python);
+        //            for (int i = 0; i < count; i++)
+        //            {
+        //                file_data = reader.ReadBytes(1024);
+        //                stream_python.Write(file_data, 0, file_data.Length);//error
+        //            }
+        //            //============================================================
+
+        //            //send_to_python.Read(file_data, 0, file_data.Length);//파일읽어서 배열에 넣고
+        //            //stream_python.Write(file_data, 0, file_data.Length);//송신
+        //            //string test_num = "sent all";
+        //            //byte[] asd = new byte[40];
+        //            //asd = Encoding.Default.GetBytes(test_num);
+        //            //stream_python.Write(asd, 0, asd.Length);
+        //            //MessageBox.Show(asd.ToString());
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show("파일 전송 오류: " + ex.ToString());
+        //    }
+        //}
+
         private async void Send_python()//저장된 파일 열어서 보내주기
         {
             NetworkStream stream_python = client_Distinguish[to_python];
@@ -211,26 +261,14 @@ namespace AI_project_server
                     stream_python.Write(file_size, 0, 4);//error
                     MessageBox.Show(str_length.ToString() + "파일크기용");
 
-                    //byte[] file_data = new byte[test_length];
-
-                    //============================================================
-                    byte[] file_data = new byte[1024];
-                    int count = test_length / 1024 + 1;
-                    BinaryReader reader = new BinaryReader(send_to_python);
-                    for (int i = 0; i < count; i++)
+                    //파일 조각조각 전송
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+                    while ((bytesRead = send_to_python.Read(buffer, 0, buffer.Length)) > 0)
                     {
-                        file_data = reader.ReadBytes(1024);
-                        stream_python.Write(file_data, 0, file_data.Length);//error
+                        stream_python.Write(buffer, 0, bytesRead);
                     }
-                    //============================================================
-
-                    //send_to_python.Read(file_data, 0, file_data.Length);//파일읽어서 배열에 넣고
-                    //stream_python.Write(file_data, 0, file_data.Length);//송신
-                    //string test_num = "sent all";
-                    //byte[] asd = new byte[40];
-                    //asd = Encoding.Default.GetBytes(test_num);
-                    //stream_python.Write(asd, 0, asd.Length);
-                    //MessageBox.Show(asd.ToString());
+                    send_to_python.Close();
                 }
             }
             catch (Exception ex)
@@ -238,7 +276,6 @@ namespace AI_project_server
                 MessageBox.Show("파일 전송 오류: " + ex.ToString());
             }
         }
-
 
         private async void Pass_receive()
         {
