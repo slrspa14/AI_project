@@ -89,7 +89,7 @@ namespace AI_project_client
             //client = new TcpClient();
             try
             {
-                client.Connect("10.10.20.113", 9197);
+                client.Connect("127.0.0.1", 9199);
                 if (client.Connected)
                 {
                     MessageBox.Show("접속 성공");
@@ -141,10 +141,10 @@ namespace AI_project_client
                        byte[] file_data = new byte[capture_image.ToBytes().Length];//파일크기 배열 생성
                        file_data = capture_image.ToBytes();
                        stream.Write(file_data, 0, file_data.Length);
-                       //MessageBox.Show("파일 보냄");
+                       MessageBox.Show("WPF client -> WPF server");
                        //Array.Clear(file_ready, 0, file_ready.Length);
-                       Array.Clear(file_length, 0, file_length.Length);
-                       Array.Clear(file_data, 0, file_data.Length);
+                       //Array.Clear(file_length, 0, file_length.Length);
+                       //Array.Clear(file_data, 0, file_data.Length);
                        //break;
                    }
                });
@@ -170,5 +170,4 @@ namespace AI_project_client
                 });
         }
     }
-
 }
