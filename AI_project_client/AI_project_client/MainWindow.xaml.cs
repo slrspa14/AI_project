@@ -163,20 +163,25 @@ namespace AI_project_client
             stream = client.GetStream();
             await Task.Run(() =>
                 {
-                    byte[] recv_result = new byte[256];
-                    while ((length = stream.Read(recv_result, 0, recv_result.Length)) != 0)//결과만 수신할거니깐
+                    while(true)
                     {
-                        //결과 라벨에 띄우기
-                        string result = Encoding.Default.GetString(recv_result);
-                        Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                        byte[] recv_result = new byte[256];
+                        while ((length = stream.Read(recv_result, 0, recv_result.Length)) != 0)//결과만 수신할거니깐
                         {
-                            result_label.Content = result;//라벨
-                        }));
-                        //MessageBox.Show(result);
+                            //결과 라벨에 띄우기
+                            string result = Encoding.Default.GetString(recv_result);
+                            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                            {
+                                result_label.Content = result;//라벨
+                            }));
+                            //MessageBox.Show(result);
+                        }
+                        
                     }
-                    client.Close();
-                    stream.Close();
+                    
                 });
+            client.Close();
+            stream.Close();
         }
     }
 }

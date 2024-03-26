@@ -98,7 +98,7 @@ namespace AI_project_server
             while (true)
             {
                 int length;
-                byte[] data = new byte[128];
+                byte[] data = new byte[1024];
 
                 while (true)//파일크기 받고 파일받기
                 {
