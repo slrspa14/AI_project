@@ -125,7 +125,7 @@ namespace AI_project_server
                             stream.Read(size, 0, size.Length);
                             fileLength = BitConverter.ToInt32(size, 0);
                             //MessageBox.Show(fileLength.ToString() + "파일크기계속 바뀌나");//잘 바뀜
-                            read_file = new FileStream("../../WPF_read_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);
+                            read_file = new FileStream("../../WPF_read_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);//
                             numbering++;
                             //int byteread;//리드한 파일 크기 담을거
                             //¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿
@@ -160,7 +160,7 @@ namespace AI_project_server
                         }
                         else if (divide[0] == "7")//검사결과 불량일 때 사진도 받고 이미지에 사진 띄우기
                         {
-                            MessageBox.Show("7번 진입");
+                            MessageBox.Show("7번 진입");//??
                             //Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
                             //{
                             //    Result_Log.Items.Insert(numbering, test);
@@ -191,7 +191,7 @@ namespace AI_project_server
         }
 
         private async void Send_python()//저장된 파일 열어서 보내주기
-        {//씨발
+        {
             NetworkStream stream_python = Client_Distinguish[to_python];
             try
             {
@@ -200,7 +200,7 @@ namespace AI_project_server
                     await Task.Delay(6000);
                     // 파일 크기 전송
                     byte[] file_size = new byte[4];
-                    send_to_python = new FileStream("../../WPF_read_image/" + num_test + ".png", FileMode.Open, FileAccess.Read);
+                    send_to_python = new FileStream("../../WPF_read_image/" + num_test + ".png", FileMode.Open, FileAccess.Read);//
                     num_test++;
                     //int test_length = (int)send_to_python.Length;
                     int test_length = (int)send_to_python.Length;
@@ -210,7 +210,7 @@ namespace AI_project_server
                     stream_python.Write(file_size, 0, file_size.Length);
                     MessageBox.Show(test_length.ToString() + "파일크기용");
 
-                    byte[] file_data = new byte[test_length];
+                    byte[] file_data = new byte[test_length];//outofmemory??
 
                     send_to_python.Read(file_data, 0, file_data.Length);//파일읽어서 배열에 넣고
                     stream_python.Write(file_data, 0, file_data.Length);//송신
@@ -222,5 +222,47 @@ namespace AI_project_server
                 MessageBox.Show("파일 전송 오류: " + ex.ToString());
             }
         }
+
+        private async void Pass_receive()
+        {
+            await Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+                NetworkStream stream_python = client_Distinguish[to_python];
+                byte[] result = new byte[1024];
+                stream_python.Read(result, 0, result.Length);
+                //여기서 받아서 리스트뷰 채우기
+                //pass defect 구별하고
+
+            });
+        }
+
+        //private async void Defect_receive()//얘는 이미지도
+        //{
+        //    await Task.Run(async () =>
+        //    {
+        //        await Task.Delay(1000);
+        //        NetworkStream stream_python = client_Distinguish[to_python];
+        //        byte[] result = new byte[1024];
+        //        stream_python.Read(result, 0, result.Length);//결과 먼저 수신받고 파일받기
+        //        //결과 수신받고 리스트뷰 채우기
+
+
+        //        //파일 사이즈용
+        //        byte[] image_size = new byte[4];
+        //        stream_python.Read(image_size, 0, image_size.Length);
+        //        int file_size = BitConverter.ToInt32(image_size, 0);
+
+        //        //파일 만들고
+        //        FileStream defect_image = new FileStream("../../defect_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);
+        //        //수신
+        //        byte[] file_data = new byte[file_size];
+        //        BinaryWriter write = new BinaryWriter(defect_image);
+        //        stream_python.Read(file_data, 0, file_data.Length);
+        //        write.Write(file_data, 0, file_data.Length);
+        //        //이미지 수신하고 image에 사진 넣어주기
+        //    });
+        //}
+
     }
 }

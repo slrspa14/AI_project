@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.IO;
 // OpenCV 사용을 위한 using
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
@@ -121,10 +122,11 @@ namespace AI_project_client
 
         //실시간 캡처본
         private async void File_send(TcpClient client)
-        {
+        {//왜 파이썬 연결되면 1.1기가//찍어보낼때 1.1//캡처해서 파일저장후 보내보기
             stream = client.GetStream();
             await Task.Run(async() =>
                {
+                   int test_num = 0;
                    while (true)
                    {
                        await Task.Delay(5000);
@@ -134,14 +136,25 @@ namespace AI_project_client
                        Mat capture_image = new Mat();
                        cam.Read(capture_image);
 
-                       byte[] file_length = new byte[4];
+                       //Cv2.ImWrite("../../" + test_num + ".png", capture_image);//캡처저장
+                       //FileStream test_file = new FileStream("../../" + test_num + ".png", FileMode.Open, FileAccess.Read);
+                       //test_num++;
+
+                       byte[] file_length = new byte[4];//크기배열
+
+                       //int test_file_length = (int)test_file.Length;//파일길이 형변환
+                       //file_length = Encoding.Default.GetBytes(test_file_length.ToString());
+
                        file_length = BitConverter.GetBytes(capture_image.ToBytes().Length);
                        stream.Write(file_length, 0, file_length.Length);//파일크기 보내주고
-                       //MessageBox.Show("파일크기 보내고");
+
                        byte[] file_data = new byte[capture_image.ToBytes().Length];//파일크기 배열 생성
                        file_data = capture_image.ToBytes();
                        stream.Write(file_data, 0, file_data.Length);
-                       MessageBox.Show("WPF client -> WPF server");
+                       MessageBox.Show(file_data.Length.ToString() + "클라에서 보낼때 확인용");
+                       //MessageBox.Show("WPF client -> WPF server");
+
+                       //test_file.Close();
                    }
                });
         }
