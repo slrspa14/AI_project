@@ -122,11 +122,11 @@ namespace AI_project_client
 
         //실시간 캡처본
         private async void File_send(TcpClient client)
-        {//왜 파이썬 연결되면 1.1기가//찍어보낼때 1.1//캡처해서 파일저장후 보내보기
+        {//왜 파이썬 연결되면 1.1기가//찍어보낼때 잘 보내는거 같은데//캡처해서 파일저장후 보내보기
             stream = client.GetStream();
             await Task.Run(async() =>
                {
-                   int test_num = 0;
+                   //int test_num = 0;
                    while (true)
                    {
                        await Task.Delay(5000);

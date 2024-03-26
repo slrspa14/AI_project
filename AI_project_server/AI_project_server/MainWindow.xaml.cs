@@ -119,20 +119,20 @@ namespace AI_project_server
                             //파일수신 및 파이썬한테 전송하기
                         }
                         else if (divide[0] == "3")
-                        {
-                            stream = Client_Distinguish[line_name];
+                        {//수신 1.1기가
+                            NetworkStream rev_stream = Client_Distinguish[line_name];
                             byte[] size = new byte[4];
-                            stream.Read(size, 0, size.Length);
+                            rev_stream.Read(size, 0, size.Length);
                             fileLength = BitConverter.ToInt32(size, 0);
-                            //MessageBox.Show(fileLength.ToString() + "파일크기계속 바뀌나");//잘 바뀜
-                            read_file = new FileStream("../../WPF_read_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);//
+                            MessageBox.Show(fileLength.ToString() + "wpf클라 파일 수신확인용");
+                            read_file = new FileStream("../../WPF_read_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);
                             numbering++;
                             //int byteread;//리드한 파일 크기 담을거
                             //¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿
                             BinaryWriter write = new BinaryWriter(read_file);
                             buffer = new byte[fileLength];
                             //MessageBox.Show("여기");
-                            stream.Read(buffer, 0, buffer.Length);
+                            rev_stream.Read(buffer, 0, buffer.Length);
                             write.Write(buffer, 0, buffer.Length);
                             read_file.Close();
                         }
