@@ -89,7 +89,7 @@ namespace AI_project_client
             //client = new TcpClient();
             try
             {
-                client.Connect("127.0.0.1", 9199);
+                client.Connect("10.10.20.113", 9195);
                 if (client.Connected)
                 {
                     MessageBox.Show("접속 성공");
@@ -145,7 +145,7 @@ namespace AI_project_client
                    }
                });
         }
-        private async void Receive_result(TcpClient client)//되려나
+        private async void Receive_result(TcpClient client)
         {
             stream = client.GetStream();
             await Task.Run(() =>
