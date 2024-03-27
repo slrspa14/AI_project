@@ -151,8 +151,8 @@ namespace AI_project_client
                        byte[] file_data = new byte[capture_image.ToBytes().Length];//파일크기 배열 생성
                        file_data = capture_image.ToBytes();
                        stream.Write(file_data, 0, file_data.Length);
-                       MessageBox.Show(file_data.Length.ToString() + "클라에서 보낼때 확인용");
-                       //MessageBox.Show("WPF client -> WPF server");
+                       //MessageBox.Show(file_data.Length.ToString() + "클라에서 보낼때 확인용");
+                       MessageBox.Show("WPF client -> WPF server");
 
                        //test_file.Close();
                    }

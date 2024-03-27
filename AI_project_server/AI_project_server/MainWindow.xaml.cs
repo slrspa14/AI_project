@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using System.IO;
+using MySql.Data.MySqlClient;
 
 namespace AI_project_server
 {
@@ -23,6 +24,10 @@ namespace AI_project_server
         private IPEndPoint localAddress;
         private TcpClient client;
         private NetworkStream stream;
+        private NetworkStream rev_stream;
+
+        //db용
+        private MySqlConnection sql;
 
         private object lockObject = new object();
         FileStream read_file, send_to_python;
@@ -64,11 +69,14 @@ namespace AI_project_server
                 //Thread t1 = new Thread(new ThreadStart(Connect));
                 //t1.Start();
                 //Connect();
+                string connectstring = "UID=root; PWD=1234; Server=127.0.0.1; port=3306; Database=image_result";
+                sql = new MySqlConnection(connectstring);
+                sql.Open();//db 열고
                 Handle_client();
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                MessageBox.Show($"오류:{ex.Message}");
                 server.Stop();
             }
         }
@@ -81,7 +89,7 @@ namespace AI_project_server
                     server.Start();
                     await Task.Delay(1000);
                     client = server.AcceptTcpClient();
-                    stream = client.GetStream();
+                    //stream = client.GetStream();
                     IPEndPoint getIP = (IPEndPoint)client.Client.RemoteEndPoint;
                     string IP = getIP.Address.ToString();
                     Dispatcher.Invoke(() =>
@@ -90,9 +98,11 @@ namespace AI_project_server
                     });
                     Thread t1 = new Thread(new ThreadStart(Connected_client));
                     t1.Start();
+
                 }
             });
         }
+        //스레드라서 그런가
         private void Connected_client()
         {
             while (true)
@@ -104,7 +114,7 @@ namespace AI_project_server
                 {
                     try
                     {
-                        length = stream.Read(data, 0, data.Length);//왜 끊기지
+                        length = stream.Read(data, 0, data.Length);
 
                         //데이터 받고 구분자로 파이썬, WPF 구분하기
                         msg = Encoding.Default.GetString(data);
@@ -116,25 +126,47 @@ namespace AI_project_server
                             //WPF client 정보저장하기
                             Client_Distinguish.Add(divide[1], stream);
                             line_name = divide[1];
+                            //db연동 테스트
+                            //string qry = "INSERT INTO result(NO, Time, P/F, Cause)" +
+                            //            "VALUES(" + "@NO, @Time, @P/F, @Cause" + ");";
+                            //using (MySqlCommand cmd = sql.CreateCommand())
+                            //{
+                            //    cmd.CommandText = qry;
+                            //    cmd.Parameters.Add("@NO", MySqlDbType.Int32);
+                            //    cmd.Parameters.Add("@Time", MySqlDbType.VarChar);
+                            //    cmd.Parameters.Add("@[/F", MySqlDbType.VarChar);
+                            //    cmd.Parameters.Add("@Cause", MySqlDbType.VarChar);
+
+                            //    cmd.Parameters["@NO"].Value = "1";
+                            //    cmd.Parameters["@NO"].Value = "2";
+                            //    cmd.Parameters["@NO"].Value = "3";
+                            //    cmd.Parameters["@NO"].Value = "4";
+
+                            //    cmd.ExecuteNonQuery();//?
+                            //}
                             //파일수신 및 파이썬한테 전송하기
+                            rev_stream = client.GetStream();
                         }
-                        else if (divide[0] == "3")
-                        {//수신 1.1기가
-                            NetworkStream rev_stream = Client_Distinguish[line_name];
+                        else if (divide[0] == "3")//계속 3이 들어와서
+                        {
+                            //여기?
+                            //Image_file(rev_stream);
+                            //MessageBox.Show("3들어옴");//파이썬 연결되면 안들어옴 stream이 파이썬이랑 연결되서 그런가
                             byte[] size = new byte[4];
                             rev_stream.Read(size, 0, size.Length);
                             fileLength = BitConverter.ToInt32(size, 0);
-                            MessageBox.Show(fileLength.ToString() + "wpf클라 파일 수신확인용");
+                            //MessageBox.Show(fileLength.ToString() + "wpf클라 파일 수신확인용");
                             read_file = new FileStream("../../WPF_read_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);
                             numbering++;
-                            //int byteread;//리드한 파일 크기 담을거
                             //¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿
                             BinaryWriter write = new BinaryWriter(read_file);
+
                             buffer = new byte[fileLength];
-                            //MessageBox.Show("여기");
                             rev_stream.Read(buffer, 0, buffer.Length);
                             write.Write(buffer, 0, buffer.Length);
                             read_file.Close();
+                            Array.Clear(buffer, 0, buffer.Length);
+                            
                         }
                         else if (divide[0] == "5")
                         {
@@ -143,6 +175,25 @@ namespace AI_project_server
                         }
                         else if (divide[0] == "6")//검사결과 수신//pass일 때
                         {
+                            //디비 저장할 거
+                            //번호/시간(초까지)/검사결과(P/F)/불량인이유 없으면 x
+                            //string qry = "INSERT INTO result("+"NO, Time, P/F, Cause"+")" +
+                            //    "         VALUES("+"@NO, @Time, @P/F, @Cause"+");";
+                            //using (MySqlCommand cmd = sql.CreateCommand())
+                            //{
+                            //    cmd.CommandText = qry;
+                            //    cmd.Parameters.Add("@NO", MySqlDbType.Int32);
+                            //    cmd.Parameters.Add("@Time", MySqlDbType.VarChar);
+                            //    cmd.Parameters.Add("@[/F", MySqlDbType.VarChar);
+                            //    cmd.Parameters.Add("@Cause", MySqlDbType.VarChar);
+
+                            //    cmd.Parameters["@NO"].Value ="1";
+                            //    cmd.Parameters["@NO"].Value ="2";
+                            //    cmd.Parameters["@NO"].Value ="3";
+                            //    cmd.Parameters["@NO"].Value ="4";
+
+                            //    cmd.ExecuteNonQuery();
+                            //}
                             MessageBox.Show("6번 진입");
                             //리스트뷰에 띄우기
                             //ui 건드리는 스레드가 아닌 애가 건드리려고 해서 오류남
@@ -190,6 +241,15 @@ namespace AI_project_server
             }
         }
 
+        private async void Image_file(NetworkStream wpf_Stream)
+        {
+            await Task.Run(async () =>
+            {
+                await Task.Delay(1000);
+                
+            });
+        }
+
         private async void Send_python()//저장된 파일 열어서 보내주기
         {
             NetworkStream stream_python = Client_Distinguish[to_python];
@@ -197,7 +257,7 @@ namespace AI_project_server
             {
                 while (true)
                 {
-                    await Task.Delay(6000);
+                    await Task.Delay(10000);
                     // 파일 크기 전송
                     byte[] file_size = new byte[4];
                     send_to_python = new FileStream("../../WPF_read_image/" + num_test + ".png", FileMode.Open, FileAccess.Read);//
