@@ -2,13 +2,14 @@
 using System.Windows;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using System.IO;
+using System.IO.Ports;
 // OpenCV 사용을 위한 using
 using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
 // Timer 사용을 위한 using
 using System.Windows.Threading;
 using System.Text;
+using System.Windows.Shapes;
 
 namespace AI_project_client
 {
@@ -17,6 +18,9 @@ namespace AI_project_client
     /// </summary>
     public partial class MainWindow : System.Windows.Window
     {
+        //SerialPort sp;
+        SerialPort sp = new SerialPort("COM6");
+
         VideoCapture cam;
         Mat frame;
         DispatcherTimer timer;
@@ -30,6 +34,11 @@ namespace AI_project_client
         public MainWindow()
         {
             InitializeComponent();
+            //sp.PortName = "COM6";
+            //sp.BaudRate = 9600;
+            //sp.DataBits = 8;
+            //sp.Parity = Parity.None;
+            //sp.StopBits = StopBits.One;
         }
 
         private void Windows_loaded(object sender, RoutedEventArgs e)
@@ -90,6 +99,7 @@ namespace AI_project_client
             //client = new TcpClient();
             try
             {
+                sp.Open();
                 client.Connect("10.10.20.113", 9195);
                 if (client.Connected)
                 {
@@ -175,8 +185,9 @@ namespace AI_project_client
                                 result_label.Content = result;//라벨
                             }));
                             //MessageBox.Show(result);
+                            sp.WriteLine(result);
+                            //sp.Write(recv_result, 0, recv_result.Length);
                         }
-                        
                     }
                     
                 });
