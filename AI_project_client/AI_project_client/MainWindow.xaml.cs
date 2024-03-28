@@ -19,7 +19,7 @@ namespace AI_project_client
     public partial class MainWindow : System.Windows.Window
     {
         //SerialPort sp;
-        SerialPort sp = new SerialPort("COM6");
+        //SerialPort sp = new SerialPort("COM6");
 
         VideoCapture cam;
         Mat frame;
@@ -99,7 +99,7 @@ namespace AI_project_client
             //client = new TcpClient();
             try
             {
-                sp.Open();
+                //sp.Open();
                 client.Connect("10.10.20.113", 9195);
                 if (client.Connected)
                 {
@@ -185,7 +185,7 @@ namespace AI_project_client
                                 result_label.Content = result;//라벨
                             }));
                             //MessageBox.Show(result);
-                            sp.WriteLine(result);
+                            //sp.WriteLine(result);
                             //sp.Write(recv_result, 0, recv_result.Length);
                         }
                     }
