@@ -11,6 +11,7 @@ using System.Windows.Threading;
 using System.IO;
 using MySql.Data.MySqlClient;
 using System.Windows.Media.Imaging;
+using System.Collections.ObjectModel;
 
 namespace AI_project_server
 {
@@ -41,33 +42,30 @@ namespace AI_project_server
         int fileLength;//파일 길이용
         byte[] buffer;//파일 데이터용
 
-        int numbering = 0, num_test = 0;//테스트용
-
-        //listview용 리스트
-        List<string> pass_result = new List<string>();
-        List<string> defect_result = new List<string>();
+        int numbering = 0, num_test = 0, pass_cnt = 0, defect_cnt = 0;
 
         //클라구분용
         Dictionary<string, NetworkStream> client_Distinguish = new Dictionary<string, NetworkStream>();
         public Dictionary<string, NetworkStream> Client_Distinguish { get => client_Distinguish; set => client_Distinguish = value; }
 
-        public class FailData
+        //listview용
+        ObservableCollection<DefectData> defect_result = null;
+        ObservableCollection<PassData> pass_result = null;
+
+        public class DefectData
         {
-            public string Itemf { get; set; }
-            public string Timef { get; set; }
-            public string Linef { get; set; }
-            public string Directorf { get; set; }
-            public string Notef { get; set; }
+            public string NO { get; set; }
+            public string Date { get; set; }
+            public string Result { get; set; }
+            public string Cause { get; set; }
         }
         public class PassData
         {
-            public string Itemr { get; set; }
-            public string Time { get; set; }
-            public string Line { get; set; }
-            public string Director { get; set; }
-            public string Note { get; set; }
+            public string NO { get; set; }
+            public string Date { get; set; }
+            public string Result { get; set; }
+            public string Cause { get; set; }
         }
-
 
         public MainWindow()
         {
@@ -153,23 +151,34 @@ namespace AI_project_server
                             fileLength = BitConverter.ToInt32(size, 0);
                             //MessageBox.Show(fileLength.ToString() + "wpf클라 파일 수신확인용");
                             read_file = new FileStream("../../WPF_read_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);
-                            numbering++;
+                            
                             BinaryWriter write = new BinaryWriter(read_file);
 
                             buffer = new byte[fileLength];
                             rev_stream.Read(buffer, 0, buffer.Length);
                             write.Write(buffer, 0, buffer.Length);
                             read_file.Close();
-                            Array.Clear(buffer, 0, buffer.Length);
-
+                            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                            {
+                                BitmapImage bi = new BitmapImage();
+                                bi.BeginInit();
+                                bi.UriSource = new Uri(@"C:/Users/aiot/source/repos/AI_project/AI_project_server/AI_project_server/bin/WPF_read_image/" + numbering + ".png");
+                                bi.DecodePixelHeight = 150;
+                                bi.DecodePixelWidth = 350;
+                                bi.EndInit();
+                                
+                                receive_image.Source = bi;
+                            }));
+                            numbering++;
                         }
                         else if (divide[0] == "6")//검사결과 수신//pass일 때
                         {
-                            MessageBox.Show("6번 진입");
+                            //MessageBox.Show("6번 진입");
+                            pass_cnt++;
                             //디비 저장할 거
                             //번호/시간(초까지)/검사결과(P/F)/불량인이유 없으면 x
                             //db연동 테스트
-                            string qry = "INSERT INTO result(" + "NO, Time, test_result" + ")" +
+                            string qry = "INSERT INTO test(" + "NO, Time, test_result" + ")" +
                                         "VALUES(" + "@NO, @Time, @test_result" + ");";
                             using (MySqlCommand cmd = sql.CreateCommand())
                             {
@@ -184,13 +193,20 @@ namespace AI_project_server
 
                                 cmd.ExecuteNonQuery();
                             }
+                            //string NO = divide[1];
+                            //string date = divide[2];
+                            //string result = divide[3];
+                            pass_result = new ObservableCollection<PassData>
+                            {
+                                new PassData() { NO = divide[1], Date = divide[2], Result = divide[3], Cause="" }
+                            };
 
-                            
                             //리스트뷰에 띄우기
                             //ui 건드리는 스레드가 아닌 애가 건드리려고 해서 오류남
                             Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
                             {
-                                Result_Log.Items.Insert(numbering, "테스트");
+                                Result_Log.Items.Insert(0, pass_result);
+                                pass_count.Content = pass_cnt;
                             }));
                             //검사결과 및 파일수신하기, DB저장하기
 
@@ -199,10 +215,43 @@ namespace AI_project_server
                             result = Encoding.Default.GetBytes(divide[3]);//결과
                             rev_stream.Write(result, 0, result.Length);
                         }
-                        else if (divide[0] == "7")//검사결과 불량일 때 사진도 받고 이미지에 사진 띄우기
+                        else if (divide[0] == "7")//검사결과 불량일 때
                         {
-                            MessageBox.Show("7번 진입");
-                            Defect_receive();//이미지 수신용
+                            //MessageBox.Show(msg + "메시지 확인");
+                            //MessageBox.Show(divide[1]);
+                            //MessageBox.Show(divide[2]);
+                            //MessageBox.Show(divide[3]);
+                            //MessageBox.Show(divide[4]);
+                            defect_cnt++;
+                            string qry = "INSERT INTO test(" + "NO, Time, test_result, Cause" + ")" +
+                                            "VALUES(" + "@NO, @Time, @test_result, @Cause" + ");";
+                            using (MySqlCommand cmd = sql.CreateCommand())
+                            {
+                                cmd.CommandText = qry;
+                                cmd.Parameters.Add("@NO", MySqlDbType.Int32);
+                                cmd.Parameters.Add("@Time", MySqlDbType.Text);
+                                cmd.Parameters.Add("@test_result", MySqlDbType.Text);
+                                cmd.Parameters.Add("@Cause", MySqlDbType.Text);
+
+                                cmd.Parameters["@NO"].Value = divide[1];
+                                cmd.Parameters["@Time"].Value = divide[2];
+                                cmd.Parameters["@test_result"].Value = divide[3];
+                                cmd.Parameters["@Cause"].Value = divide[4];
+
+                                cmd.ExecuteNonQuery();
+                            }
+
+                            defect_result = new ObservableCollection<DefectData>
+                            {
+                                new DefectData { NO = divide[1], Date = divide[2], Result = divide[3], Cause = divide[4] }
+                            };
+
+                            //UI용
+                            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                            {
+                                Result_Log.Items.Insert(0, defect_result);
+                                defect_count.Content = defect_cnt;
+                            }));
 
                             //결과 wpf 클라한테 보내주기
                             byte[] result = new byte[1024];
@@ -239,7 +288,7 @@ namespace AI_project_server
             {
                 while (true)
                 {
-                    await Task.Delay(10000);
+                    await Task.Delay(7000);
                     // 파일 크기 전송
                     byte[] file_size = new byte[4];
                     send_to_python = new FileStream("../../WPF_read_image/" + num_test + ".png", FileMode.Open, FileAccess.Read);//
@@ -247,13 +296,13 @@ namespace AI_project_server
                     int test_length = (int)send_to_python.Length;
                     file_size = BitConverter.GetBytes(test_length);
                     stream_python.Write(file_size, 0, file_size.Length);
-                    MessageBox.Show(test_length.ToString() + "파일크기용");
+                    //MessageBox.Show(test_length.ToString() + "파일크기용");
 
                     byte[] file_data = new byte[test_length];//outofmemory??
 
                     send_to_python.Read(file_data, 0, file_data.Length);//파일읽어서 배열에 넣고
                     stream_python.Write(file_data, 0, file_data.Length);//송신
-                    MessageBox.Show("파일전송완료");
+                    //MessageBox.Show("파일전송완료");
                 }
             }
             catch (Exception ex)
@@ -261,21 +310,6 @@ namespace AI_project_server
                 MessageBox.Show("파일 전송 오류: " + ex.ToString());
             }
         }
-
-        //private async void Pass_receive()//pass일때인데 흠
-        //{
-        //    await Task.Run(async () =>
-        //    {
-        //        await Task.Delay(1000);
-        //        NetworkStream stream_python = client_Distinguish[to_python];
-        //        byte[] result = new byte[1024];
-        //        stream_python.Read(result, 0, result.Length);
-        //        //여기서 받아서 리스트뷰 채우기
-        //        //pass defect 구별하고
-
-        //    });
-        //}
-
         private async void Defect_receive()//얘는 이미지도
         {
             await Task.Run(async () =>
@@ -284,23 +318,7 @@ namespace AI_project_server
                 try
                 {
                     //결과 db에 넣어주고
-                    string qry = "INSERT INTO result(" + "NO, Time, test_result, Cause" + ")" +
-                                            "VALUES(" + "@NO, @Time, @test_result, @Cause" + ");";
-                    using (MySqlCommand cmd = sql.CreateCommand())
-                    {
-                        cmd.CommandText = qry;
-                        cmd.Parameters.Add("@NO", MySqlDbType.Int32);
-                        cmd.Parameters.Add("@Time", MySqlDbType.VarChar);
-                        cmd.Parameters.Add("@test_result", MySqlDbType.VarChar);
-                        cmd.Parameters.Add("@Cause", MySqlDbType.VarChar);
-                        
-                        cmd.Parameters["@NO"].Value = divide[1];
-                        cmd.Parameters["@Time"].Value = divide[2];
-                        cmd.Parameters["@test_result"].Value = divide[3];
-                        cmd.Parameters["@Cause"].Value = divide[4];
-
-                        cmd.ExecuteNonQuery();
-                    }
+                    
 
                     NetworkStream stream_python = client_Distinguish[to_python];
                     byte[] result = new byte[1024];
