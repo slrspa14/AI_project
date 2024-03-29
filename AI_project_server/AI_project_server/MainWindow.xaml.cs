@@ -101,7 +101,6 @@ namespace AI_project_server
             {
                 while (true)
                 {
-                    //server.Start();
                     await Task.Delay(1000);
                     client = server.AcceptTcpClient();
                     NetworkStream stream = client.GetStream();
@@ -130,18 +129,20 @@ namespace AI_project_server
                     try
                     {
                         length = stream.Read(data, 0, data.Length);
-
                         //데이터 받고 구분자로 파이썬, WPF 구분하기
                         msg = Encoding.Default.GetString(data);
                         //MessageBox.Show(msg);
                         divide = msg.Split('/');
+                        //Array.Clear(data, 0, data.Length);
                         //stream.Write(data, 0, data.Length);
                         if (divide[0] == "1")
                         {
                             //WPF client 정보저장하기
-                            Client_Distinguish.Add(divide[1], stream);
-                            line_name = divide[1];
-
+                            lock(lockObject)
+                            {
+                                Client_Distinguish.Add(divide[1], stream);
+                                line_name = divide[1];
+                            }
                             //파일수신 및 파이썬한테 전송하기
                             rev_stream = client.GetStream();
                         }
@@ -211,10 +212,18 @@ namespace AI_project_server
                         }
                         else if (divide[0] == "2")
                         {
-                            Client_Distinguish.Add(divide[1], stream);
-                            to_python = divide[1];
-                            Send_python();
-                        }
+                            if (Client_Distinguish.ContainsKey(divide[1]))
+                            {
+                                Console.WriteLine("중복값");
+                            }
+                            else
+                            {
+                                Client_Distinguish.Add(divide[1], stream);
+                                to_python = divide[1];
+                                Send_python();
+                            }
+
+                    }
                     }
                     catch (Exception s)
                     {
@@ -235,11 +244,8 @@ namespace AI_project_server
                     byte[] file_size = new byte[4];
                     send_to_python = new FileStream("../../WPF_read_image/" + num_test + ".png", FileMode.Open, FileAccess.Read);//
                     num_test++;
-                    //int test_length = (int)send_to_python.Length;
                     int test_length = (int)send_to_python.Length;
-                    //string str_length = test_length.ToString();
                     file_size = BitConverter.GetBytes(test_length);
-                    //file_size = Encoding.Default.GetBytes(str_length);
                     stream_python.Write(file_size, 0, file_size.Length);
                     MessageBox.Show(test_length.ToString() + "파일크기용");
 
@@ -275,49 +281,56 @@ namespace AI_project_server
             await Task.Run(async () =>
             {
                 await Task.Delay(1000);
-                //결과 db에 넣어주고
-                string qry = "INSERT INTO result(" + "NO, Time, test_result, Cause" + ")" +
-                                        "VALUES(" + "@NO, @Time, @test_result, @Cause" + ");";
-                using (MySqlCommand cmd = sql.CreateCommand())
+                try
                 {
-                    cmd.CommandText = qry;
-                    cmd.Parameters.Add("@NO", MySqlDbType.Int32);
-                    cmd.Parameters.Add("@Time", MySqlDbType.VarChar);
-                    cmd.Parameters.Add("@test_result", MySqlDbType.VarChar);
-                    cmd.Parameters.Add("@Cause", MySqlDbType.VarChar);
+                    //결과 db에 넣어주고
+                    string qry = "INSERT INTO result(" + "NO, Time, test_result, Cause" + ")" +
+                                            "VALUES(" + "@NO, @Time, @test_result, @Cause" + ");";
+                    using (MySqlCommand cmd = sql.CreateCommand())
+                    {
+                        cmd.CommandText = qry;
+                        cmd.Parameters.Add("@NO", MySqlDbType.Int32);
+                        cmd.Parameters.Add("@Time", MySqlDbType.VarChar);
+                        cmd.Parameters.Add("@test_result", MySqlDbType.VarChar);
+                        cmd.Parameters.Add("@Cause", MySqlDbType.VarChar);
+                        
+                        cmd.Parameters["@NO"].Value = divide[1];
+                        cmd.Parameters["@Time"].Value = divide[2];
+                        cmd.Parameters["@test_result"].Value = divide[3];
+                        cmd.Parameters["@Cause"].Value = divide[4];
 
-                    cmd.Parameters["@NO"].Value = divide[1];
-                    cmd.Parameters["@Time"].Value = divide[2];
-                    cmd.Parameters["@test_result"].Value = divide[3];
-                    cmd.Parameters["@Cause"].Value = divide[4];
+                        cmd.ExecuteNonQuery();
+                    }
 
-                    cmd.ExecuteNonQuery();
+                    NetworkStream stream_python = client_Distinguish[to_python];
+                    byte[] result = new byte[1024];
+                    stream_python.Read(result, 0, result.Length);//결과 먼저 수신받고 파일받기
+                                                                 //결과 수신받고 리스트뷰 채우기
+                    Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                    {
+                        Result_Log.Items.Insert(numbering, "테스트");
+                    }));
+
+                    //파일 사이즈용
+                    byte[] image_size = new byte[4];
+                    stream_python.Read(image_size, 0, image_size.Length);
+                    int file_size = BitConverter.ToInt32(image_size, 0);
+
+                    //파일 만들고
+                    FileStream defect_image = new FileStream("../../defect_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);
+                    //수신
+                    byte[] file_data = new byte[file_size];
+                    BinaryWriter write = new BinaryWriter(defect_image);
+                    stream_python.Read(file_data, 0, file_data.Length);
+                    write.Write(file_data, 0, file_data.Length);
+
+                    //이미지 수신하고 image에 사진 넣어주기
+                    Load_image();//이미지 띄우기용
                 }
-
-                NetworkStream stream_python = client_Distinguish[to_python];
-                byte[] result = new byte[1024];
-                stream_python.Read(result, 0, result.Length);//결과 먼저 수신받고 파일받기
-                //결과 수신받고 리스트뷰 채우기
-                Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                catch(Exception ex)
                 {
-                    Result_Log.Items.Insert(numbering, "테스트");
-                }));
-
-                //파일 사이즈용
-                byte[] image_size = new byte[4];
-                stream_python.Read(image_size, 0, image_size.Length);
-                int file_size = BitConverter.ToInt32(image_size, 0);
-
-                //파일 만들고
-                FileStream defect_image = new FileStream("../../defect_image/" + numbering + ".png", FileMode.Create, FileAccess.Write);
-                //수신
-                byte[] file_data = new byte[file_size];
-                BinaryWriter write = new BinaryWriter(defect_image);
-                stream_python.Read(file_data, 0, file_data.Length);
-                write.Write(file_data, 0, file_data.Length);
-
-                //이미지 수신하고 image에 사진 넣어주기
-                Load_image();//이미지 띄우기용
+                    MessageBox.Show(ex.ToString());
+                }
             });
         }
         private async void Load_image()
